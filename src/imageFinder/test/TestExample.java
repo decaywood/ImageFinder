@@ -1,7 +1,7 @@
 package imageFinder.test;
 
 import imageFinder.analyzeStrategy.AnalyzeStrategy;
-import imageFinder.analyzeStrategy.CEDDStrategy.CEDDAnalizeStrategy;
+import imageFinder.analyzeStrategy.JDCStrategy.CEDD.CEDDAnalizeStrategy;
 
 import java.awt.image.BufferedImage;
 import java.io.File;

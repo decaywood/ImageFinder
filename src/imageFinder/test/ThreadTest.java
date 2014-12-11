@@ -12,34 +12,37 @@ import java.util.concurrent.Executors;
 public class ThreadTest {
 
     public static void main(String[] args) {
-        ExecutorService threadPool = Executors.newFixedThreadPool(3);
-        ArrayList<Runnable> runnables = new ArrayList<>();
-        runnables.add(new Runnable() {
-            
-            @Override
-            public void run() {
-                while(true)
-                System.out.println("currentThread: " + Thread.currentThread() + " is running");
-            }
-        });
-        runnables.add(new Runnable() {
-            
-            @Override
-            public void run() {
-                while(true)
-                System.out.println("currentThread: " + Thread.currentThread() + " is running");
-            }
-        });
-        runnables.add(new Runnable() {
-     
-            @Override
-            public void run() {
-                while(true)
-                System.out.println("currentThread: " + Thread.currentThread() + " is running");
-            }
-        });
         
-        for(Runnable runnable : runnables)
-            threadPool.execute(runnable);
+        System.out.println(Runtime.getRuntime().availableProcessors());
+        
+//        ExecutorService threadPool = Executors.newFixedThreadPool(3);
+//        ArrayList<Runnable> runnables = new ArrayList<>();
+//        runnables.add(new Runnable() {
+//            
+//            @Override
+//            public void run() {
+//                while(true)
+//                System.out.println("currentThread: " + Thread.currentThread() + " is running");
+//            }
+//        });
+//        runnables.add(new Runnable() {
+//            
+//            @Override
+//            public void run() {
+//                while(true)
+//                System.out.println("currentThread: " + Thread.currentThread() + " is running");
+//            }
+//        });
+//        runnables.add(new Runnable() {
+//     
+//            @Override
+//            public void run() {
+//                while(true)
+//                System.out.println("currentThread: " + Thread.currentThread() + " is running");
+//            }
+//        });
+//        
+//        for(Runnable runnable : runnables)
+//            threadPool.execute(runnable);
     }
 }

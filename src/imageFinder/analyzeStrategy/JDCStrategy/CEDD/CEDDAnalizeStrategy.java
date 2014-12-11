@@ -1,16 +1,15 @@
-package imageFinder.analyzeStrategy.CEDDStrategy;
+package imageFinder.analyzeStrategy.JDCStrategy.CEDD;
 
 import imageFinder.analyzeStrategy.AnalyzeStrategy;
 import imageFinder.analyzeStrategy.StrategyType;
-import imageFinder.analyzeStrategy.CEDDStrategy.RGBToHSVCoverter.HSV;
+import imageFinder.analyzeStrategy.JDCStrategy.Fuzzy10Bin;
+import imageFinder.analyzeStrategy.JDCStrategy.Fuzzy24Bin;
+import imageFinder.analyzeStrategy.JDCStrategy.RGBToHSVCoverter;
+import imageFinder.analyzeStrategy.JDCStrategy.RGBToHSVCoverter.HSV;
 
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
-
-import javax.imageio.ImageIO;
 
 
 /**
@@ -49,10 +48,23 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
     private double T2;
     private double T3;
     
-    
+    private Fuzzy10Bin fuzzy10;
+    private Fuzzy24Bin fuzzy24;
+    private int[] edges;
+    private double[][] pixelCount;
+    private CEDDQuant ceddQuant;
     
     private double[] histogram;
     
+    private int[][] imageGridRed;
+    private int[][] imageGridGreen;
+    private int[][] imageGridBlue;
+
+    private double[][] grayscale;
+
+    private int[] CororRed;
+    private int[] CororGreen;
+    private int[] CororBlue;
     
     public CEDDAnalizeStrategy() {
         this(14d, 0.68d, 0.98d, 0.98d);
@@ -65,7 +77,12 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
         this.T2 = Th2;
         this.T3 = Th3;
       
+        this.fuzzy10 = new Fuzzy10Bin();
+        this.fuzzy24 = new Fuzzy24Bin();
         this.histogram = new double[144];
+        this.pixelCount = new double[2][2];
+        this.edges = new int[6];
+        this.ceddQuant = new CEDDQuant();
       
     }
   
@@ -84,25 +101,20 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
         image= convertTo8BitRGBImage(image);
        
 
-        double[] Fuzzy10BinResultTable;
-        double[] Fuzzy24BinResultTable;
+      
+        RGBToHSVCoverter HSVConverter = new RGBToHSVCoverter();
+        
 
         int width = image.getWidth();
         int height = image.getHeight();
-
-
-        Fuzzy10Bin fuzzy10 = new Fuzzy10Bin();
-        Fuzzy24Bin fuzzy24 = new Fuzzy24Bin();
-        RGBToHSVCoverter HSVConverter = new RGBToHSVCoverter();
-        int[] edges = new int[6];
-
         
-        double[][] pixelCount = new double[2][2];
-        int[][] imageGridRed = new int[width][height];
-        int[][] imageGridGreen = new int[width][height];
-        int[][] imageGridBlue = new int[width][height];
-
-        CEDDQuant ceddQuant = new CEDDQuant(histogram.length);
+        if(imageGridRed == null || width > imageGridRed.length){
+            imageGridRed = new int[width][height];
+            imageGridGreen = new int[width][height];
+            imageGridBlue = new int[width][height];
+            grayscale = new double[width][height];
+        }
+        
 
  
         /**
@@ -158,7 +170,7 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
         */
         
         int pixel;
-        double[][] grayscale = new double[width][height];
+        
         
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -171,9 +183,12 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
             }
         }
 
-        int[] CororRed = new int[Step_Y * Step_X];
-        int[] CororGreen = new int[Step_Y * Step_X];
-        int[] CororBlue = new int[Step_Y * Step_X];
+        if(CororRed == null || Step_Y * Step_X > CororRed.length){
+            CororRed = new int[Step_Y * Step_X];
+            CororGreen = new int[Step_Y * Step_X];
+            CororBlue = new int[Step_Y * Step_X];
+        }
+        
 
         int meanRed, meanGreen, meanBlue;
 
@@ -388,14 +403,16 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
 
                 HSV HSV;
                 HSV = HSVConverter.convert(meanRed, meanGreen, meanBlue);
-
+                
+                double[] Fuzzy10BinResult;
+                double[] Fuzzy24BinResult;
                
-                Fuzzy10BinResultTable = fuzzy10.ApplyFilter(HSV.H, HSV.S, HSV.V);
-                Fuzzy24BinResultTable = fuzzy24.ApplyFilter(HSV.H, HSV.S, HSV.V, Fuzzy10BinResultTable);
+                Fuzzy10BinResult = fuzzy10.ApplyFilter(HSV.H, HSV.S, HSV.V);
+                Fuzzy24BinResult = fuzzy24.ApplyFilter(HSV.H, HSV.S, HSV.V, Fuzzy10BinResult);
 
                 for (int i = 0; i <= T; i++) {
                     for (int j = 0; j < 24; j++) {
-                        if (Fuzzy24BinResultTable[j] > 0) histogram[24 * edges[i] + j] += Fuzzy24BinResultTable[j];
+                        if (Fuzzy24BinResult[j] > 0) histogram[24 * edges[i] + j] += Fuzzy24BinResult[j];
                     }
                 }
                   
@@ -411,7 +428,7 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
             histogram[i] = histogram[i] / Sum;
         }
 
-        ceddQuant.Apply(histogram);
+        ceddQuant.calculate(histogram);
 
  
     }
@@ -419,8 +436,10 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
      
     @Override
     public double CalculateSimilarity(AnalyzeStrategy compareData) {
+        
+        double[] compareHistogram = compareData.getImageKeyInfo();
       
-        if ((compareData.getImageKeyInfo().length != histogram.length)){
+        if (compareHistogram.length != histogram.length){
             try {
                 throw new Exception("Image Info Is Not Matched!!!");
             } catch (Exception e) {
@@ -437,8 +456,6 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
         double TempCount2 = 0;
         double TempCount3 = 0;
         
-        double[] compareHistogram = compareData.getImageKeyInfo();
-
         for (int i = 0; i < compareHistogram.length; i++) {
             Temp1 += compareHistogram[i];
             Temp2 += histogram[i];

@@ -8,7 +8,8 @@ package imageFinder.analyzeStrategy;
 public enum StrategyType {
 
     CEDD("CEDD"),
-    
+    FCTH("FCTH"),
+    JCD("JCD"),
     CORLOR_LAYOUT("ColorLayout");
     
     private String strategyName;

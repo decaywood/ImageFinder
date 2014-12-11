@@ -2,7 +2,9 @@ package imageFinder;
 
 import imageFinder.MinHeap.HeapEntry;
 import imageFinder.analyzeStrategy.AnalyzeStrategy;
-import imageFinder.analyzeStrategy.CEDDStrategy.CEDDAnalizeStrategy;
+import imageFinder.analyzeStrategy.JDCStrategy.JCDStrategy;
+import imageFinder.analyzeStrategy.JDCStrategy.CEDD.CEDDAnalizeStrategy;
+import imageFinder.analyzeStrategy.JDCStrategy.FCTH.FCTHAnalizeStrategy;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -40,9 +42,13 @@ public class SearchEngine {
         this.generators = new ArrayList<IndexGenerator>();
         this.finders = new ArrayList<ImageFinder>();
         
-        this.generators.add(new IndexGenerator(new CEDDAnalizeStrategy(), true, 6));
+//        this.generators.add(new IndexGenerator(new CEDDAnalizeStrategy(), true, 6));
+//        this.generators.add(new IndexGenerator(new FCTHAnalizeStrategy(), true, 6));
+        this.generators.add(new IndexGenerator(new JCDStrategy(), true, 6));
         
-        this.finders.add(new ImageFinder(new CEDDAnalizeStrategy(), new CEDDAnalizeStrategy(), 6));
+//        this.finders.add(new ImageFinder(new CEDDAnalizeStrategy(), new CEDDAnalizeStrategy(), 6));
+//        this.finders.add(new ImageFinder(new FCTHAnalizeStrategy(), new FCTHAnalizeStrategy(), 6));
+        this.finders.add(new ImageFinder(new JCDStrategy(), new JCDStrategy(), 6));
         
         this.threadPool = Executors.newFixedThreadPool(generators.size());
         
@@ -110,7 +116,7 @@ public class SearchEngine {
                 String strategyName = finder.getStrategyName();
                 HeapEntry[] resultsEntries = groupHeapEntries.get(strategyName);
                 for(HeapEntry entry : resultsEntries)
-                    System.out.println(entry.fileName+"  "+entry.similarity);
+                    System.out.println(strategyName+"  "+entry.fileName+"  "+entry.similarity);
             }
             threadPool.shutdown();
         }

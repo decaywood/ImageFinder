@@ -119,7 +119,7 @@ public class IndexGenerator implements Runnable{
         
         BufferedImage sourceImage =  ImageIO.read(file);
        
-        System.out.println("processing file :" + fileName);
+        System.out.println(Thread.currentThread()+" "+strategyName+" processing file :" + fileName);
         generateIndexData(sourceImage, fileName);
         
     }
@@ -247,9 +247,6 @@ public class IndexGenerator implements Runnable{
      */
     public void loadIndexData(File indexFile) throws Exception{
         
-        byte[] buffer = new byte[shrinkWidth * shrinkHeight]; //数据一定不会超过图片像素个数
-        
-        
         FileInputStream fis = new FileInputStream(indexFile);
         
         byte[] intByte = new byte[4];
@@ -261,10 +258,12 @@ public class IndexGenerator implements Runnable{
         byteArrLength |= ((int)intByte[1] & 0xFF) << 8;
         byteArrLength |= ((int)intByte[2] & 0xFF) << 16;
         byteArrLength |= ((int)intByte[3] & 0xFF) << 24;
+        
+        byte[] buffer = new byte[byteArrLength]; 
             
         fis.read(buffer);
         
-        double[] imageKeyInfo = ByteArrToDoubleArr(buffer, byteArrLength);
+        double[] imageKeyInfo = ByteArrToDoubleArr(buffer);
 
         this.indexData.put(indexFile.getName(), imageKeyInfo);
         fis.close();
@@ -272,9 +271,9 @@ public class IndexGenerator implements Runnable{
     }
     
     
-    private double[] ByteArrToDoubleArr(byte[] target, int length){
+    private double[] ByteArrToDoubleArr(byte[] target){
         
-        double[] result = new double[length >> 3];
+        double[] result = new double[target.length >> 3];
         
         for(int index = 0; index < result.length; index++){
             
