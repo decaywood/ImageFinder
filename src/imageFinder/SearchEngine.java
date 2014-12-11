@@ -1,10 +1,11 @@
 package imageFinder;
 
-import imageFinder.MinHeap.HeapEntry;
-import imageFinder.analyzeStrategy.AnalyzeStrategy;
 import imageFinder.analyzeStrategy.JDCStrategy.JCDStrategy;
 import imageFinder.analyzeStrategy.JDCStrategy.CEDD.CEDDAnalizeStrategy;
 import imageFinder.analyzeStrategy.JDCStrategy.FCTH.FCTHAnalizeStrategy;
+import imageFinder.util.ImageFinder;
+import imageFinder.util.IndexGenerator;
+import imageFinder.util.MinHeap.HeapEntry;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -12,8 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * 2014年12月6日
@@ -22,11 +21,9 @@ import java.util.concurrent.Executors;
  */
 public class SearchEngine {
     
-    private List<IndexGenerator> generators;
+    private List<ForkJoinIndexGenerator> generators;
     
     private List<ImageFinder> finders;
-    
-    private ExecutorService threadPool;
     
     private File[] imageFiles;
     
@@ -39,48 +36,37 @@ public class SearchEngine {
     public SearchEngine(File file) {
         
         imageFiles = file.listFiles();
-        this.generators = new ArrayList<IndexGenerator>();
+        this.generators = new ArrayList<ForkJoinIndexGenerator>();
         this.finders = new ArrayList<ImageFinder>();
         
-//        this.generators.add(new IndexGenerator(new CEDDAnalizeStrategy(), true, 6));
-//        this.generators.add(new IndexGenerator(new FCTHAnalizeStrategy(), true, 6));
-        this.generators.add(new IndexGenerator(new JCDStrategy(), true, 6));
+
+        this.generators.add(new ForkJoinIndexGenerator(new CEDDAnalizeStrategy(), true));
+        this.generators.add(new ForkJoinIndexGenerator(new FCTHAnalizeStrategy(), true));
+        this.generators.add(new ForkJoinIndexGenerator(new JCDStrategy(), true));
         
-//        this.finders.add(new ImageFinder(new CEDDAnalizeStrategy(), new CEDDAnalizeStrategy(), 6));
-//        this.finders.add(new ImageFinder(new FCTHAnalizeStrategy(), new FCTHAnalizeStrategy(), 6));
-        this.finders.add(new ImageFinder(new JCDStrategy(), new JCDStrategy(), 6));
-        
-        this.threadPool = Executors.newFixedThreadPool(generators.size());
+        this.finders.add(new ImageFinder(new CEDDAnalizeStrategy(), new CEDDAnalizeStrategy()));
+        this.finders.add(new ImageFinder(new FCTHAnalizeStrategy(), new FCTHAnalizeStrategy()));
+        this.finders.add(new ImageFinder(new JCDStrategy(), new JCDStrategy()));
         
         this.groupIndexData = new HashMap<String, Map<String, double[]>>(generators.size());
         this.groupHeapEntries = new HashMap<String, HeapEntry[]>(finders.size());
     }
     
     
-    /**
-     * 写操作 需要同步
-     */
-    public synchronized void setIndexData(String strategyName, Map<String, double[]> indexData){
+   
+    public void setIndexData(String strategyName, Map<String, double[]> indexData){
         groupIndexData.put(strategyName, indexData);
     }
     
-    /**
-     * 写操作 需要同步
-     */
-    public synchronized void setHeapEntries(String strategyName, HeapEntry[] entries) {
+   
+    public void setHeapEntries(String strategyName, HeapEntry[] entries) {
         this.groupHeapEntries.put(strategyName, entries);
     }
     
     public void generateIndex(String outputPath){
        
-       for(IndexGenerator generator : generators){
-           generator.setEngine(this); // 用于回调操作，将索引写入searchEngine
-           generator.setIndexDataPath(outputPath);
-           generator.setImageFiles(imageFiles);
-       }
-       
-       for(IndexGenerator generator : generators){
-           threadPool.execute(generator);
+       for(ForkJoinIndexGenerator generator : generators){
+           generator.doSearch(this, outputPath, imageFiles); // 用于回调操作，将索引写入searchEngine
        }
        
     }
@@ -92,19 +78,13 @@ public class SearchEngine {
             
             String strategyName = finder.getStrategyName();
             finder.setIndexData(groupIndexData.get(strategyName));
-            finder.setEngine(this);
-            finder.setTopN(topN);
-            finder.initTargetStrategy(targetImage);
+            finder.doFind(this, targetImage, topN);
             
-        }
-        
-        for(ImageFinder finder : finders){
-            threadPool.execute(finder);
         }
         
     }
     
-    public synchronized void check(){
+    public void check(){
         
         boolean done = groupHeapEntries.size() == finders.size();
         
@@ -118,7 +98,6 @@ public class SearchEngine {
                 for(HeapEntry entry : resultsEntries)
                     System.out.println(strategyName+"  "+entry.fileName+"  "+entry.similarity);
             }
-            threadPool.shutdown();
         }
         
     }

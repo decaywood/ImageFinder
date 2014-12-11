@@ -1,5 +1,7 @@
-package imageFinder;
+package imageFinder.util;
 
+import imageFinder.ForkJoinIndexGenerator;
+import imageFinder.SearchEngine;
 import imageFinder.analyzeStrategy.AnalyzeStrategy;
 
 import java.awt.image.BufferedImage;
@@ -11,6 +13,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.RecursiveTask;
 
 import javax.imageio.ImageIO;
 
@@ -19,9 +23,7 @@ import javax.imageio.ImageIO;
  * @author decaywood
  *
  */
-public class IndexGenerator implements Runnable{
-    
-    private String indexDataSavePath;
+public class IndexGenerator implements Cloneable{
     
     /**
      * 仅作为判断文件夹是否存在的记录减少判断以及创建File实例的性能消耗
@@ -36,10 +38,7 @@ public class IndexGenerator implements Runnable{
      *
      */
     private static synchronized void addToFolderExist(String item){ folderExist.add(item); }
-    
-    public void setIndexDataPath(String path){ indexDataSavePath = path; }
-    
-    private SearchEngine engine;
+   
     
     private int shrinkWidth;
     private int shrinkHeight;
@@ -49,33 +48,16 @@ public class IndexGenerator implements Runnable{
     
     private boolean shrink;
     
-    private Map<String, double[]> indexData;
+    private ForkJoinIndexGenerator mother;
     
     private boolean persistenceIndex;
     
-    private File[] imageFiles;
     
     protected AnalyzeStrategy strategy;
     
-    public IndexGenerator(AnalyzeStrategy strategy) {
-        
-        this(strategy, false);
-        
-    }
+   
     
-    public IndexGenerator(AnalyzeStrategy strategy, boolean persistenceIndex) {
-        
-        this(strategy, persistenceIndex, 8);
-        
-    }
-    
-    public IndexGenerator(AnalyzeStrategy strategy, boolean persistenceIndex,  int bits) {
-        
-        this(strategy,persistenceIndex, false, bits, 0, 0);
-        
-    }
-    
-    public IndexGenerator(AnalyzeStrategy strategy, boolean persistenceIndex, boolean shrink, int bits,  int shrinkWidth, int shrinkHeight) {
+    public IndexGenerator(AnalyzeStrategy strategy, boolean persistenceIndex, boolean shrink, int shrinkWidth, int shrinkHeight) {
         
         this.strategy = strategy;
         
@@ -89,23 +71,16 @@ public class IndexGenerator implements Runnable{
             this.scalePointsY = new int[shrinkHeight];
         }
         
-        this.indexData = new HashMap<String, double[]>(1 << bits);
-        
         this.persistenceIndex = persistenceIndex;
         
     }
     
-    
-    public void setEngine(SearchEngine engine) {
-        this.engine = engine;
-    }
-    
-    public void setImageFiles(File[] imageFiles) {
-        this.imageFiles = imageFiles;
+    public String getStrategyType(){
+        return strategy.getStrategyType().strategyName();
     }
     
     
-    protected void generateIndexData(File file) throws Exception{
+    protected void generateIndexData(File file, String indexDataSavePath) throws Exception{
         
         String fileName = file.getName();
         String strategyName = this.strategy.getStrategyType().strategyName();
@@ -120,11 +95,11 @@ public class IndexGenerator implements Runnable{
         BufferedImage sourceImage =  ImageIO.read(file);
        
         System.out.println(Thread.currentThread()+" "+strategyName+" processing file :" + fileName);
-        generateIndexData(sourceImage, fileName);
+        generateIndexData(sourceImage, fileName, indexDataSavePath);
         
     }
     
-    private void generateIndexData(BufferedImage sourceImage, String fileName){
+    private void generateIndexData(BufferedImage sourceImage, String fileName, String indexDataSavePath){
         
         double[] imageKeyInfo;
         
@@ -135,8 +110,8 @@ public class IndexGenerator implements Runnable{
         this.strategy.analyzeImage(sourceImage);
         imageKeyInfo = this.strategy.getImageKeyInfo();
         if(persistenceIndex)
-            saveIndexData(imageKeyInfo, fileName);
-        indexData.put(fileName, imageKeyInfo);
+            saveIndexData(imageKeyInfo, fileName, indexDataSavePath);
+        mother.setIndexData(fileName, imageKeyInfo);
         
     }
     
@@ -173,7 +148,7 @@ public class IndexGenerator implements Runnable{
     }
     
   
-    private void saveIndexData(double[] data, String imageName){
+    private void saveIndexData(double[] data, String imageName, String indexDataSavePath){
         
         String strategyName = this.strategy.getStrategyType().strategyName();
         
@@ -265,7 +240,7 @@ public class IndexGenerator implements Runnable{
         
         double[] imageKeyInfo = ByteArrToDoubleArr(buffer);
 
-        this.indexData.put(indexFile.getName(), imageKeyInfo);
+        mother.setIndexData(indexFile.getName(), imageKeyInfo);
         fis.close();
         
     }
@@ -297,23 +272,40 @@ public class IndexGenerator implements Runnable{
     }
 
     /**
-     * 2014年12月7日
+     * 
+     * 2014年12月11日
+     * @author decaywood
+     *
+     */
+    public void doSearch(String indexDataSavePath, File[] imageFiles, ForkJoinIndexGenerator mother, int start, int end) {
+        
+        try {
+            
+            if(start > end) throw new Exception("error range!");
+            
+            this.mother = mother;
+            
+            for(int i = start; i < end; i++){
+                generateIndexData(imageFiles[i], indexDataSavePath);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+       
+    }
+    
+    
+    /**
+     * 2014年12月11日
      * @author decaywood
      *
      */ 
     @Override
-    public void run() {
-        for(File targetFile : imageFiles){
-            try {
-                
-                generateIndexData(targetFile);
-                engine.setIndexData(strategy.getStrategyType().strategyName(), indexData);
-                
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+    public Object clone() throws CloneNotSupportedException {
+        
+        return new IndexGenerator(this.strategy, this.persistenceIndex, this.shrink, this.shrinkWidth, this.shrinkHeight);
+        
     }
-    
     
 }

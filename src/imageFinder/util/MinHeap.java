@@ -1,4 +1,4 @@
-package imageFinder;
+package imageFinder.util;
 
 
 /**
@@ -12,8 +12,8 @@ public class MinHeap {
     
     public static class HeapEntry{
         
-        String fileName;
-        double similarity;
+        public String fileName;
+        public double similarity;
         
     }
     

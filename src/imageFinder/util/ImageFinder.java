@@ -1,7 +1,8 @@
-package imageFinder;
+package imageFinder.util;
 
-import imageFinder.MinHeap.HeapEntry;
+import imageFinder.SearchEngine;
 import imageFinder.analyzeStrategy.AnalyzeStrategy;
+import imageFinder.util.MinHeap.HeapEntry;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -18,71 +19,43 @@ import java.util.Map.Entry;
  * @author decaywood
  *
  */
-public class ImageFinder implements Runnable{
+public class ImageFinder{
     
     /**
      * 仅作为判断文件夹是否存在,减少新建File对象开支
-     * add操作必须保证线程安全！but,无需对整个list方法进行线程安全封装
+     *  
      */
     private static Map<String, String> folderPath = new HashMap<String, String>();
     
-    /**
   
-     *  写操作！
-     *  冲突仅发生在每种策略对应文件夹还未生成时,synchronize关键字对性能影响不大！
-     *
-     */
-    public static synchronized void addTofolderPath(String key, String value){
+    public static void addTofolderPath(String key, String value){
         
         folderPath.put(key, value);
         
     }
     
-    
-    /**
-     * 不同策略共享参数
-     */
-    private int topN;
-    
     private Map<String, double[]> indexData;
     
-    public void setTopN(int topN){ this.topN = topN; }
-    
     private AnalyzeStrategy toolStrategy;
-    
-    private SearchEngine engine;
     
     private AnalyzeStrategy targetStrategy;
     
     
-    public ImageFinder(AnalyzeStrategy strategy, AnalyzeStrategy targetStrategy) {
-        
-        this(strategy, targetStrategy, 8);
-        
-    }
     
-    
-    public ImageFinder(AnalyzeStrategy toolStrategy, AnalyzeStrategy targetStrategy, int bits) {
+    public ImageFinder(AnalyzeStrategy toolStrategy, AnalyzeStrategy targetStrategy) {
         
         this.toolStrategy = toolStrategy;
         
         this.targetStrategy = targetStrategy;
         
-        indexData = new HashMap<String, double[]>(1 << bits);
-        
     }
     
-    public void initTargetStrategy(BufferedImage targetImage) {
-        this.targetStrategy.analyzeImage(targetImage);
-    }
+    
     
     public void setIndexData(Map<String, double[]> indexData) {
         this.indexData = indexData;
     }
     
-    public void setEngine(SearchEngine engine) {
-        this.engine = engine;
-    }
     
     public String getStrategyName() {
         return toolStrategy.getStrategyType().strategyName();
@@ -90,7 +63,7 @@ public class ImageFinder implements Runnable{
     
  
     
-    private MinHeap.HeapEntry[] findSimilarImage(AnalyzeStrategy strategy){
+    private MinHeap.HeapEntry[] findSimilarImage(AnalyzeStrategy strategy, int topN){
         
         MinHeap minHeap = new MinHeap(topN);
         
@@ -107,17 +80,19 @@ public class ImageFinder implements Runnable{
         return minHeap.returnResult();
     }
 
-    /**
-     * 2014年12月7日
-     * @author decaywood
-     *
-     */ 
-    @Override
-    public void run() {
+   /**
+    * 
+    * 2014年12月11日
+    * @author decaywood
+    *
+    */
+    public void doFind(SearchEngine engine, BufferedImage targetImage, int topN) {
         
-        HeapEntry[] results = findSimilarImage(targetStrategy);
+        this.targetStrategy.analyzeImage(targetImage);
+        HeapEntry[] results = findSimilarImage(targetStrategy, topN);
         engine.setHeapEntries(toolStrategy.getStrategyType().strategyName(), results);
         engine.check();
+        
     }
 
 }
