@@ -302,9 +302,9 @@ public class IndexGenerator implements Cloneable{
      *
      */ 
     @Override
-    public Object clone() throws CloneNotSupportedException {
+    public IndexGenerator clone() throws CloneNotSupportedException {
         
-        return new IndexGenerator(this.strategy, this.persistenceIndex, this.shrink, this.shrinkWidth, this.shrinkHeight);
+        return new IndexGenerator(this.strategy.clone(), this.persistenceIndex, this.shrink, this.shrinkWidth, this.shrinkHeight);
         
     }
     

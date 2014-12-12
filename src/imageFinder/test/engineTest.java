@@ -16,10 +16,16 @@ public class engineTest {
     
     public static void main(String[] args) throws Exception {
         
-        SearchEngine engine = new SearchEngine(new File("F:\\照片\\婚庆"));
+//        SearchEngine engine = new SearchEngine(new File("F:\\BigData\\contest_data\\clothes\\clothes_image"));
+//        engine.generateIndex("F:\\forTest");
+//        BufferedImage targetImage = ImageIO.read(new File("F:\\BigData\\contest_data\\clothes\\clothes_source\\clothes_250003.jpg"));
+//        engine.searchImage(50, targetImage);
+        
+        SearchEngine engine = new SearchEngine(new File("F:\\BigData\\contest_data\\shoes\\shoes_image"));
         engine.generateIndex("F:\\forTest");
-        BufferedImage targetImage = ImageIO.read(new File("F:\\照片\\婚庆\\IMGP0367.JPG"));
-        engine.searchImage(10, targetImage);
+//        BufferedImage targetImage = ImageIO.read(new File("F:\\BigData\\contest_data\\shoes\\shoes_source\\shoes_250003.jpg"));
+        BufferedImage targetImage = ImageIO.read(new File("F:\\BigData\\contest_data\\shoes\\shoes_source\\shoes_250001.jpg"));
+        engine.searchImage(1000, targetImage);
     }
 
 }

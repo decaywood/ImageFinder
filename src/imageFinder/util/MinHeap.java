@@ -85,7 +85,19 @@ public class MinHeap {
         
     }
     
-    public HeapEntry[] returnResult(){ return heap; }
+    public HeapEntry[] returnResult(){ 
+        
+        HeapEntry[] result = new HeapEntry[heap.length];
+        for(int i = result.length - 1; i >= 0; i--){
+            result[i] = new HeapEntry();
+            result[i].fileName = heap[0].fileName;
+            result[i].similarity = heap[0].similarity;
+            heap[0].similarity = Double.MAX_VALUE;
+            buildMinHeap();
+        }
+        heap = null;
+        return result;
+    }
     
 
 }

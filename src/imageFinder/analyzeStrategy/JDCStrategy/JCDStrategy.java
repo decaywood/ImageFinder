@@ -140,5 +140,10 @@ public class JCDStrategy implements AnalyzeStrategy{
 
 
     }
+    
+    @Override
+    public AnalyzeStrategy clone() throws CloneNotSupportedException {
+        return new JCDStrategy();
+    }
 
 }

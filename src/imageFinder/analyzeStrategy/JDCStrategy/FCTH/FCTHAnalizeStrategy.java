@@ -106,7 +106,7 @@ public class FCTHAnalizeStrategy implements AnalyzeStrategy{
          * 按RGB颜色分解图像
          */
 
-        if(imageGrid == null || width > imageGrid.length){
+        if(imageGrid == null || width > imageGrid.length || height > imageGrid[0].length){
             imageGrid = new double[width][height];
             imageGridRed = new int[width][height];
             imageGridGreen = new int[width][height];
@@ -306,6 +306,13 @@ public class FCTHAnalizeStrategy implements AnalyzeStrategy{
         return Result;
     }
 
+    
+    @Override
+    public AnalyzeStrategy clone() throws CloneNotSupportedException {
+        
+        return new FCTHAnalizeStrategy();
+        
+    }
      
     @Override
     public double[] getImageKeyInfo() {

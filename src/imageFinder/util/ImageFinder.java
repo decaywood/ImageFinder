@@ -71,7 +71,10 @@ public class ImageFinder{
            
             String fileName = entry.getKey();
             double[] compareData = entry.getValue();
-            
+            if(compareData.length < 144){
+                System.out.println(fileName);
+                continue;
+            }
             this.toolStrategy.setImageKeyInfo(compareData);
             double similarity = this.toolStrategy.CalculateSimilarity(strategy);
             minHeap.addToHeap(fileName, similarity);
@@ -79,6 +82,44 @@ public class ImageFinder{
         
         return minHeap.returnResult();
     }
+    
+    
+    private BufferedImage shrinkImage(BufferedImage sourceImage){
+        int srcWidth = sourceImage.getWidth();
+        int srcHeight = sourceImage.getHeight();
+        
+        int shrinkWidth = 150;
+        double ratio = srcHeight * 1D / srcWidth;
+        int shrinkHeight = (int) (shrinkWidth * ratio);
+        
+        int[] scalePointsX = new int[shrinkWidth];
+        int[] scalePointsY = new int[shrinkHeight];
+        
+        if(shrinkWidth > srcWidth || shrinkHeight > srcHeight){ return sourceImage; }
+        
+        float scaleWidth = (float)srcWidth / shrinkWidth;
+        float scaleHeight = (float)srcHeight / shrinkHeight;
+        
+        
+        for(int index = 0; index < scalePointsX.length; index++) 
+            scalePointsX[index] = (int) (index * scaleWidth);
+         
+        for(int index = 0; index < scalePointsY.length; index++)
+            scalePointsY[index] = (int) (index * scaleHeight);
+        
+        BufferedImage destinationImage = new BufferedImage(shrinkWidth, shrinkHeight, sourceImage.getType());
+        
+        for(int i = 0; i < scalePointsX.length; i++){
+            int indexX = scalePointsX[i];
+            for(int j = 0; j < scalePointsY.length; j++){
+                int indexY = scalePointsY[j];
+                int RGB = sourceImage.getRGB(indexX, indexY);
+                destinationImage.setRGB(i, j, RGB);
+            }
+        }
+        return destinationImage;
+    }
+    
 
    /**
     * 

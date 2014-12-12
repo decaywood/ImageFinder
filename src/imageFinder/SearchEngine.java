@@ -9,10 +9,13 @@ import imageFinder.util.MinHeap.HeapEntry;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.imageio.ImageIO;
 
 /**
  * 2014年12月6日
@@ -41,12 +44,12 @@ public class SearchEngine {
         
 
         this.generators.add(new ForkJoinIndexGenerator(new CEDDAnalizeStrategy(), true));
-        this.generators.add(new ForkJoinIndexGenerator(new FCTHAnalizeStrategy(), true));
-        this.generators.add(new ForkJoinIndexGenerator(new JCDStrategy(), true));
+//        this.generators.add(new ForkJoinIndexGenerator(new FCTHAnalizeStrategy(), true));
+//        this.generators.add(new ForkJoinIndexGenerator(new JCDStrategy(), true));
         
         this.finders.add(new ImageFinder(new CEDDAnalizeStrategy(), new CEDDAnalizeStrategy()));
-        this.finders.add(new ImageFinder(new FCTHAnalizeStrategy(), new FCTHAnalizeStrategy()));
-        this.finders.add(new ImageFinder(new JCDStrategy(), new JCDStrategy()));
+//        this.finders.add(new ImageFinder(new FCTHAnalizeStrategy(), new FCTHAnalizeStrategy()));
+//        this.finders.add(new ImageFinder(new JCDStrategy(), new JCDStrategy()));
         
         this.groupIndexData = new HashMap<String, Map<String, double[]>>(generators.size());
         this.groupHeapEntries = new HashMap<String, HeapEntry[]>(finders.size());
@@ -91,16 +94,40 @@ public class SearchEngine {
         /**
          * for test
          */
+        
+        Map<String, File> fileMap = imageOutPut();
         if(done){
             for(ImageFinder finder : finders){
                 String strategyName = finder.getStrategyName();
                 HeapEntry[] resultsEntries = groupHeapEntries.get(strategyName);
-                for(HeapEntry entry : resultsEntries)
+                int i = 0;
+                for(HeapEntry entry : resultsEntries){
+                    File file = fileMap.get(entry.fileName);
+                    try {
+                        i++;
+                        BufferedImage image = ImageIO.read(file);
+//                        ImageIO.write(image, "jpg", new File("F:\\BigData\\contest_data\\clothes\\result\\"+entry.fileName));
+                        ImageIO.write(image, "jpg", new File("F:\\BigData\\contest_data\\shoes\\result\\shoes_" + (100000+i) +".jpg"));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     System.out.println(strategyName+"  "+entry.fileName+"  "+entry.similarity);
+                }
+                   
             }
         }
         
     }
     
+    private Map<String, File> imageOutPut(){
+        
+        Map<String, File> fileMap = new HashMap<>(imageFiles.length);
+        
+        for(File file : imageFiles){
+            fileMap.put(file.getName(), file);
+        }
+        
+        return fileMap;
+    }
 
 }

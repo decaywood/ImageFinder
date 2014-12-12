@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
  * @author decaywood
  *
  */
-public interface AnalyzeStrategy{
+public interface AnalyzeStrategy extends Cloneable{
     
     public StrategyType getStrategyType();
     
@@ -19,5 +19,7 @@ public interface AnalyzeStrategy{
     public double[] getImageKeyInfo();
     
     public void setImageKeyInfo(double[] imageKeyInfo);
+    
+    public AnalyzeStrategy clone() throws CloneNotSupportedException;
     
 }

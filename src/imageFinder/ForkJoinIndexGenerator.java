@@ -44,7 +44,7 @@ public class ForkJoinIndexGenerator{
                 /**
                  * 深度复制
                  */
-                this.generator = (IndexGenerator) generator.clone();
+                this.generator = generator.clone();
                 this.mother = mother;
                 this.files = files;
                 this.indexDataSavePath = indexDataSavePath;
@@ -69,6 +69,7 @@ public class ForkJoinIndexGenerator{
             }
             else {
                 this.generator.doSearch(indexDataSavePath, files, mother, start, end);
+                this.generator = null;
             }
             
         }

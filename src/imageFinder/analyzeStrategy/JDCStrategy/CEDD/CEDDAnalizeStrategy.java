@@ -108,7 +108,7 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
         int width = image.getWidth();
         int height = image.getHeight();
         
-        if(imageGridRed == null || width > imageGridRed.length){
+        if(imageGridRed == null || width > imageGridRed.length || height > imageGridRed[0].length){
             imageGridRed = new int[width][height];
             imageGridGreen = new int[width][height];
             imageGridBlue = new int[width][height];
@@ -477,6 +477,11 @@ public class CEDDAnalizeStrategy implements AnalyzeStrategy {
         return Result;
     }
 
+    
+    @Override
+    public AnalyzeStrategy clone() throws CloneNotSupportedException {
+        return new CEDDAnalizeStrategy(T0, T1, T2, T3);
+    }
     
     @Override
     public double[] getImageKeyInfo() {
