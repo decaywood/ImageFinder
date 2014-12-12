@@ -5,6 +5,7 @@ import imageFinder.analyzeStrategy.JDCStrategy.CEDD.CEDDAnalizeStrategy;
 import imageFinder.analyzeStrategy.JDCStrategy.FCTH.FCTHAnalizeStrategy;
 import imageFinder.util.ImageFinder;
 import imageFinder.util.IndexGenerator;
+import imageFinder.util.MinHeap;
 import imageFinder.util.MinHeap.HeapEntry;
 
 import java.awt.image.BufferedImage;
@@ -14,8 +15,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.imageio.ImageIO;
+
+import com.opencsv.CSVWriter;
 
 /**
  * 2014年12月6日
@@ -44,12 +48,12 @@ public class SearchEngine {
         
 
         this.generators.add(new ForkJoinIndexGenerator(new CEDDAnalizeStrategy(), true));
-//        this.generators.add(new ForkJoinIndexGenerator(new FCTHAnalizeStrategy(), true));
-//        this.generators.add(new ForkJoinIndexGenerator(new JCDStrategy(), true));
+        this.generators.add(new ForkJoinIndexGenerator(new FCTHAnalizeStrategy(), true));
+        this.generators.add(new ForkJoinIndexGenerator(new JCDStrategy(), true));
         
         this.finders.add(new ImageFinder(new CEDDAnalizeStrategy(), new CEDDAnalizeStrategy()));
-//        this.finders.add(new ImageFinder(new FCTHAnalizeStrategy(), new FCTHAnalizeStrategy()));
-//        this.finders.add(new ImageFinder(new JCDStrategy(), new JCDStrategy()));
+        this.finders.add(new ImageFinder(new FCTHAnalizeStrategy(), new FCTHAnalizeStrategy()));
+        this.finders.add(new ImageFinder(new JCDStrategy(), new JCDStrategy()));
         
         this.groupIndexData = new HashMap<String, Map<String, double[]>>(generators.size());
         this.groupHeapEntries = new HashMap<String, HeapEntry[]>(finders.size());
@@ -74,8 +78,9 @@ public class SearchEngine {
        
     }
     
-    public void searchImage(int topN, BufferedImage targetImage) throws Exception{
+    public void searchImage(int topN, File file, CSVWriter csvWriter) throws Exception{
         
+        BufferedImage targetImage = ImageIO.read(file);
         
         for(ImageFinder finder : finders){
             
@@ -85,41 +90,86 @@ public class SearchEngine {
             
         }
         
+        writeResult(csvWriter, file.getName());
+//        check(csvWriter, file.getName());
+        
     }
     
-    public void check(){
-        
-        boolean done = groupHeapEntries.size() == finders.size();
+    public void check(CSVWriter csvWriter, String imageName) throws IOException{
         
         /**
          * for test
          */
         
-        Map<String, File> fileMap = imageOutPut();
-        if(done){
-            for(ImageFinder finder : finders){
-                String strategyName = finder.getStrategyName();
-                HeapEntry[] resultsEntries = groupHeapEntries.get(strategyName);
-                int i = 0;
-                for(HeapEntry entry : resultsEntries){
-                    File file = fileMap.get(entry.fileName);
-                    try {
-                        i++;
-                        BufferedImage image = ImageIO.read(file);
-//                        ImageIO.write(image, "jpg", new File("F:\\BigData\\contest_data\\clothes\\result\\"+entry.fileName));
-                        ImageIO.write(image, "jpg", new File("F:\\BigData\\contest_data\\shoes\\result\\shoes_" + (100000+i) +".jpg"));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    System.out.println(strategyName+"  "+entry.fileName+"  "+entry.similarity);
-                }
-                   
+        Map<String, File> fileMap = test_imageOutPut();
+           
+        HeapEntry[] resultsEntries = weightCalculate();
+        
+        int i = 0;
+        for(HeapEntry entry : resultsEntries){
+            File file = fileMap.get(entry.fileName);
+            try {
+                i++;
+                BufferedImage image = ImageIO.read(file);
+                ImageIO.write(image, "jpg", new File("F:\\BigData\\contest_data\\shoes\\result\\shoes_" + i +".jpg"));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            System.out.println(entry.fileName+"  "+entry.similarity);
+        }
+               
+        
+    }
+        
+  
+    
+    private void writeResult(CSVWriter csvWriter, String imageName) throws IOException{
+       
+        String[] csvFormat = new String[2];
+        
+        HeapEntry[] resultsEntries = weightCalculate();
+        
+        
+        for(HeapEntry entry : resultsEntries){
+            csvFormat[0] = imageName;
+            csvFormat[1] = entry.fileName;
+            csvWriter.writeNext(csvFormat);
+            csvWriter.flush();
         }
         
     }
     
-    private Map<String, File> imageOutPut(){
+    private HeapEntry[] weightCalculate(){
+        
+        int topN = 0;
+        Map<String, Double> map = new HashMap<String, Double>();
+        
+        for(ImageFinder finder : finders){
+            String strategyName = finder.getStrategyName();
+            HeapEntry[] resultsEntries = groupHeapEntries.get(strategyName);
+            topN = resultsEntries.length;
+            for(HeapEntry entry : resultsEntries){
+                if(map.containsKey(entry.fileName)){
+                    double value = map.get(entry.fileName);
+                    value += entry.similarity;
+                    map.put(entry.fileName, value);
+                    continue;
+                }
+                map.put(entry.fileName, entry.similarity);
+            }
+        }
+        
+        MinHeap heap = new MinHeap(topN);
+        
+        for(Entry<String, Double> entry : map.entrySet()){
+            heap.addToHeap(entry.getKey(), entry.getValue());
+        }
+        
+        return heap.returnResult();
+        
+    }
+    
+    private Map<String, File> test_imageOutPut(){
         
         Map<String, File> fileMap = new HashMap<>(imageFiles.length);
         
@@ -129,5 +179,9 @@ public class SearchEngine {
         
         return fileMap;
     }
+
+
+
+    
 
 }

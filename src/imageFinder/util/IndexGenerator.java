@@ -87,7 +87,7 @@ public class IndexGenerator implements Cloneable{
         File indexFile = new File(indexDataSavePath + "\\" + strategyName + "\\" + fileName);
         
         if(indexFile.exists()){ 
-            System.out.println("loading file :" + fileName);
+            System.out.println(Thread.currentThread()+" "+strategyName+"   loading file :" + fileName);
             loadIndexData(indexFile); 
             return;
         }

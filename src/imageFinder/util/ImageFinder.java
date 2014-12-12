@@ -132,7 +132,6 @@ public class ImageFinder{
         this.targetStrategy.analyzeImage(targetImage);
         HeapEntry[] results = findSimilarImage(targetStrategy, topN);
         engine.setHeapEntries(toolStrategy.getStrategyType().strategyName(), results);
-        engine.check();
         
     }
 
