@@ -35,7 +35,8 @@ public class SearchEngine {
     private File[] imageFiles;
     
     private Map<String, Map<String, double[]>> groupIndexData;
-    private Map<String, HeapEntry[]> groupHeapEntries;
+    
+    private Map<String, Double> weightMap;
     
     /**
      * @param file 图片库存储路径
@@ -49,14 +50,14 @@ public class SearchEngine {
 
         this.generators.add(new ForkJoinIndexGenerator(new CEDDAnalizeStrategy(), true));
         this.generators.add(new ForkJoinIndexGenerator(new FCTHAnalizeStrategy(), true));
-        this.generators.add(new ForkJoinIndexGenerator(new JCDStrategy(), true));
+//        this.generators.add(new ForkJoinIndexGenerator(new JCDStrategy(), true));
         
         this.finders.add(new ImageFinder(new CEDDAnalizeStrategy(), new CEDDAnalizeStrategy()));
         this.finders.add(new ImageFinder(new FCTHAnalizeStrategy(), new FCTHAnalizeStrategy()));
-        this.finders.add(new ImageFinder(new JCDStrategy(), new JCDStrategy()));
+//        this.finders.add(new ImageFinder(new JCDStrategy(), new JCDStrategy()));
         
         this.groupIndexData = new HashMap<String, Map<String, double[]>>(generators.size());
-        this.groupHeapEntries = new HashMap<String, HeapEntry[]>(finders.size());
+        this.weightMap = new HashMap<String, Double>();
     }
     
     
@@ -67,7 +68,17 @@ public class SearchEngine {
     
    
     public void setHeapEntries(String strategyName, HeapEntry[] entries) {
-        this.groupHeapEntries.put(strategyName, entries);
+        
+        for(HeapEntry entry : entries){
+            if(weightMap.containsKey(entry.fileName)){
+                double value = weightMap.get(entry.fileName);
+                value += entry.similarity;
+                weightMap.put(entry.fileName, value);
+                continue;
+            }
+            weightMap.put(entry.fileName, entry.similarity);
+        }
+        
     }
     
     public void generateIndex(String outputPath){
@@ -90,12 +101,12 @@ public class SearchEngine {
             
         }
         
-        writeResult(csvWriter, file.getName());
-//        check(csvWriter, file.getName());
+//        writeResult(csvWriter, file.getName(), topN);
+        check(csvWriter, file.getName(), topN);
         
     }
     
-    public void check(CSVWriter csvWriter, String imageName) throws IOException{
+    public void check(CSVWriter csvWriter, String imageName, int TopN) throws IOException{
         
         /**
          * for test
@@ -103,7 +114,7 @@ public class SearchEngine {
         
         Map<String, File> fileMap = test_imageOutPut();
            
-        HeapEntry[] resultsEntries = weightCalculate();
+        HeapEntry[] resultsEntries = getSortedHeap(TopN);
         
         int i = 0;
         for(HeapEntry entry : resultsEntries){
@@ -123,11 +134,11 @@ public class SearchEngine {
         
   
     
-    private void writeResult(CSVWriter csvWriter, String imageName) throws IOException{
+    private void writeResult(CSVWriter csvWriter, String imageName, int TopN) throws IOException{
        
         String[] csvFormat = new String[2];
         
-        HeapEntry[] resultsEntries = weightCalculate();
+        HeapEntry[] resultsEntries = getSortedHeap(TopN);
         
         
         for(HeapEntry entry : resultsEntries){
@@ -139,29 +150,11 @@ public class SearchEngine {
         
     }
     
-    private HeapEntry[] weightCalculate(){
+    private HeapEntry[] getSortedHeap(int TopN){
         
-        int topN = 0;
-        Map<String, Double> map = new HashMap<String, Double>();
+        MinHeap heap = new MinHeap(TopN);
         
-        for(ImageFinder finder : finders){
-            String strategyName = finder.getStrategyName();
-            HeapEntry[] resultsEntries = groupHeapEntries.get(strategyName);
-            topN = resultsEntries.length;
-            for(HeapEntry entry : resultsEntries){
-                if(map.containsKey(entry.fileName)){
-                    double value = map.get(entry.fileName);
-                    value += entry.similarity;
-                    map.put(entry.fileName, value);
-                    continue;
-                }
-                map.put(entry.fileName, entry.similarity);
-            }
-        }
-        
-        MinHeap heap = new MinHeap(topN);
-        
-        for(Entry<String, Double> entry : map.entrySet()){
+        for(Entry<String, Double> entry : weightMap.entrySet()){
             heap.addToHeap(entry.getKey(), entry.getValue());
         }
         
